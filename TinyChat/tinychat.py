@@ -25,6 +25,7 @@ How it works, in the order the code appears:
                    the next character until it finishes the line, then run
                    a tool if the line it wrote was a command
 """
+import os
 import sys
 import time
 
@@ -35,8 +36,9 @@ import tools
 # ----------------------------------------------------------------------------
 # 1. SETTINGS
 # ----------------------------------------------------------------------------
-DATA_FILE = "chat_data.txt"
-WEIGHTS_FILE = "tinychat_weights.npz"
+HERE = os.path.dirname(os.path.abspath(__file__))    # the folder this file is in
+DATA_FILE = os.path.join(HERE, "chat_data.txt")
+WEIGHTS_FILE = os.path.join(HERE, "tinychat_weights.npz")
 
 BLOCK = 128           # how many characters back the model can see
 EMBED = 96            # how many numbers describe each character
@@ -378,12 +380,11 @@ class Bot:
     """
 
     def __init__(self):
-        try:
-            saved = np.load(WEIGHTS_FILE)
-        except FileNotFoundError:
+        if not os.path.exists(WEIGHTS_FILE):
             sys.exit("No trained model found. Run this first:  python3 tinychat.py train")
-        self.chars = list(str(saved["vocabulary"]))
-        self.weights = {k: Tensor(saved[k]) for k in saved.files if k != "vocabulary"}
+        with np.load(WEIGHTS_FILE) as saved:
+            self.chars = list(str(saved["vocabulary"]))
+            self.weights = {k: Tensor(saved[k]) for k in saved.files if k != "vocabulary"}
         self.size = sum(t.data.size for t in self.weights.values())
         self.rng = np.random.default_rng()
 
@@ -425,3 +426,4 @@ if __name__ == "__main__":
         chat()
     else:
         print("usage:  python3 tinychat.py train   (then)   python3 tinychat.py chat")
+
