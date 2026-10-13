@@ -40,7 +40,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install the tools for building
-        run: python -m pip install numpy pywebview certifi pyinstaller
+        run: python -m pip install numpy pywebview certifi pyinstaller pillow
 
       - name: Stamp the version number and where updates come from
         working-directory: ${{ env.APP_DIR }}
@@ -53,6 +53,7 @@ jobs:
         run: |
           if [ "$RUNNER_OS" = "Windows" ]; then sep=";"; else sep=":"; fi
           python -m PyInstaller --noconfirm --windowed --name "Tiny Chatbot" \
+            --icon app_icon.png \
             --add-data "tinychat_weights.npz${sep}." \
             --add-data "chat_page.html${sep}." \
             --add-data "version.txt${sep}." \
