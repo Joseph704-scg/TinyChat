@@ -51,8 +51,9 @@ jobs:
       - name: Build the app
         working-directory: ${{ env.APP_DIR }}
         run: |
-          if [ "$RUNNER_OS" = "Windows" ]; then sep=";"; else sep=":"; fi
-          python -m PyInstaller --noconfirm --windowed --name "Tiny Chatbot" \
+          # Windows gets one single .exe file: nothing to unzip, nothing to unblock.
+          if [ "$RUNNER_OS" = "Windows" ]; then sep=";"; layout="--onefile"; else sep=":"; layout="--onedir"; fi
+          python -m PyInstaller --noconfirm --windowed $layout --name "Tiny Chatbot" \
             --icon app_icon.png \
             --add-data "tinychat_weights.npz${sep}." \
             --add-data "chat_page.html${sep}." \
@@ -68,17 +69,18 @@ jobs:
         working-directory: ${{ env.APP_DIR }}/dist
         run: ditto -c -k --keepParent "Tiny Chatbot.app" "$GITHUB_WORKSPACE/Tiny-Chatbot-Mac.zip"
 
-      - name: Zip the Windows app
+      - name: Name the Windows app
         if: runner.os == 'Windows'
         working-directory: ${{ env.APP_DIR }}/dist
-        shell: pwsh
-        run: Compress-Archive -Path "Tiny Chatbot" -DestinationPath "$env:GITHUB_WORKSPACE/Tiny-Chatbot-Windows.zip"
+        run: cp "Tiny Chatbot.exe" "$GITHUB_WORKSPACE/Tiny-Chatbot-Windows.exe"
 
-      - name: Keep the zip
+      - name: Keep the app
         uses: actions/upload-artifact@v4
         with:
           name: app-${{ runner.os }}
-          path: Tiny-Chatbot-*.zip
+          path: |
+            Tiny-Chatbot-Mac.zip
+            Tiny-Chatbot-Windows.exe
           if-no-files-found: error
 
   publish:
@@ -108,7 +110,7 @@ jobs:
           EOF
           mv tiny-update.zip update.json "$GITHUB_WORKSPACE/"
 
-      - name: Collect both app zips
+      - name: Collect both apps
         uses: actions/download-artifact@v4
         with:
           merge-multiple: true
@@ -119,11 +121,11 @@ jobs:
           tag_name: app-build-${{ github.run_number }}
           name: Tiny Chatbot (build ${{ github.run_number }})
           files: |
-            Tiny-Chatbot-*.zip
+            Tiny-Chatbot-Mac.zip
+            Tiny-Chatbot-Windows.exe
             tiny-update.zip
             update.json
           body: |
-            Download the zip for your computer, unzip it, and open Tiny Chatbot.
-            Mac: for Macs with Apple chips (M1 or newer).
-            Windows: open the "Tiny Chatbot" folder and double-click "Tiny Chatbot.exe".
+            Mac: download Tiny-Chatbot-Mac.zip, open it, and open Tiny Chatbot. For Macs with Apple chips (M1 or newer).
+            Windows: download Tiny-Chatbot-Windows.exe and double-click it. If a blue box appears, click More info, then Run anyway.
             Apps already installed update themselves to this version.
