@@ -168,20 +168,28 @@ def main():
 
     sys.modules["updater"].start_checking(app)
 
-    try:
-        import webview
-    except ImportError:
-        webview = None
-
-    if webview is not None:
-        webview.create_window(APP_NAME, address, width=560, height=820, min_size=(360, 480))
-        webview.start()                 # returns when the window is closed
-    else:
-        # No app window available: show the chat in the web browser instead,
-        # and keep answering until the program is stopped.
+    if not open_window(app, address):
+        # No app window on this computer: show the chat in the web browser
+        # instead, and keep answering until the program is stopped.
         webbrowser.open(address)
         threading.Event().wait()
     app.server.shutdown()
+
+
+def open_window(app, address):
+    """Show the chat in a window of its own. Returns False if that is not
+    possible on this computer, for example when Windows refuses to load the
+    window's helper files."""
+    try:
+        import webview
+        webview.create_window(APP_NAME, address, width=560, height=820, min_size=(360, 480))
+        webview.start()                 # returns when the window is closed
+        return True
+    except BaseException as error:      # includes errors raised while loading the window's parts
+        if isinstance(error, KeyboardInterrupt):
+            raise
+        app.note(f"app window could not open, using the browser: {type(error).__name__}: {error}")
+        return False
 
 
 if __name__ == "__main__":
